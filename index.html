@@ -111,13 +111,13 @@
     }
 
     .board {
-    background: linear-gradient(180deg, #262c6d, var(--card));
-    border-radius: 24px;
-    padding: 28px 28px 32px;
-    width: 100%;
-    max-width: 720px; /* bigger than setup */
-    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
-    animation: fadeIn 0.4s ease;
+      background: linear-gradient(180deg, #262c6d, var(--card));
+      border-radius: 24px;
+      padding: 28px 28px 32px;
+      width: 100%;
+      max-width: 720px; /* bigger than setup */
+      box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+      animation: fadeIn 0.4s ease;
     }
 
     @keyframes fadeIn {
@@ -140,28 +140,28 @@
     }
 
     .cell {
-        background: #10144a;
-        border: 1px solid #343a80;
-        border-radius: 14px;
-        padding: 12px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        cursor: pointer;
-        position: relative;
+      background: #10144a;
+      border: 1px solid #343a80;
+      border-radius: 14px;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
 
-        height: 120px;
-        aspect-ratio: 1 / 1;
+      height: 120px;
+      aspect-ratio: 1 / 1;
 
-        font-size: clamp(0.75rem, 1.1vw, 1.15rem);
-        line-height: 1.15;
-        word-break: break-word;
-        overflow: hidden;
+      font-size: clamp(0.75rem, 1.1vw, 1.15rem);
+      line-height: 1.15;
+      word-break: break-word;
+      overflow: hidden;
 
-        transition: background 0.2s ease,
-                    transform 0.15s ease,
-                    box-shadow 0.15s ease;
+      transition: background 0.2s ease,
+                  transform 0.15s ease,
+                  box-shadow 0.15s ease;
     }
 
     .cell:hover {
@@ -170,6 +170,7 @@
     }
 
     .cell.crossed {
+      z-index: 100;
       background: linear-gradient(135deg, #3a3f8f, #23276b);
       color: #ffffff;
       text-decoration: line-through;
@@ -816,3 +817,4 @@
   </script>
 </body>
 </html>
+
