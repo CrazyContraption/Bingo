@@ -170,12 +170,15 @@
     }
 
     .cell.crossed {
-      z-index: 100;
       background: linear-gradient(135deg, #3a3f8f, #23276b);
       color: #ffffff;
       text-decoration: line-through;
       box-shadow: inset 0 0 0 3px rgba(255,255,255,0.15), 0 0 18px rgba(139,233,253,0.35);
       animation: stamp 0.35s cubic-bezier(.2,1.4,.4,1);
+    }
+
+    .cell:not(.crossed) {
+      z-index: 10;
     }
 
     .cell.crossed::before {
@@ -205,6 +208,7 @@
         grid-template-columns: 1fr;
       }
     }
+    
     .bingo-line {
         background: linear-gradient(135deg, #ffeb3b 60%, #ffe082 100%) !important;
         color: #222 !important;
@@ -212,22 +216,26 @@
         font-weight: bold;
         animation: bingoFlash 0.7s;
     }
+    
     @keyframes bingoFlash {
         0% { box-shadow: 0 0 0 0 #ffe082; }
         50% { box-shadow: 0 0 24px 8px #ffe082; }
         100% { box-shadow: 0 0 0 0 #ffe082; }
     }
+    
     .bingo-animate {
       animation: bingoTitlePop 1.2s cubic-bezier(.2,1.5,.5,1);
       color: #ffe082 !important;
       text-shadow: 0 0 24px #ffe082, 0 0 8px #fffde4;
     }
+    
     .bingo-combo {
       animation: bingoComboPop 1.6s cubic-bezier(.2,1.5,.5,1);
       color: #ff4081 !important;
       text-shadow: 0 0 32px #ff4081, 0 0 16px #fffde4, 0 0 8px #ffe082;
       letter-spacing: 2px;
     }
+    
     @keyframes bingoTitlePop {
       0% { transform: scale(1); }
       20% { transform: scale(1.18) rotate(-2deg); }
@@ -236,6 +244,7 @@
       80% { transform: scale(1.1); }
       100% { transform: scale(1); }
     }
+    
     @keyframes bingoComboPop {
       0% { transform: scale(1) rotate(0deg); }
       10% { transform: scale(1.25) rotate(-6deg); }
@@ -246,6 +255,7 @@
       80% { transform: scale(1.1); }
       100% { transform: scale(1) rotate(0deg); }
     }
+    
     .grid { aspect-ratio: 1/1; }
     .cell { aspect-ratio: 1/1; height: 120px; min-width: 0; font-size: clamp(0.7rem, 2vw, 1.1rem); word-break: break-word; }
     @media (max-width: 600px) {
@@ -268,10 +278,10 @@
     }
 
     @keyframes stamp {
-      0%   { transform: scale(1); }
-      40%  { transform: scale(1.25) rotate(-3deg); }
-      70%  { transform: scale(0.95); }
-      100% { transform: scale(1); }
+      0%   { z-index: 100; transform: scale(1); }
+      40%  { z-index: 100; transform: scale(1.25) rotate(-3deg); }
+      70%  { z-index: 100; transform: scale(0.95); }
+      100% { z-index: 100; transform: scale(1); }
     }
 
     .board.shake {
@@ -817,4 +827,5 @@
   </script>
 </body>
 </html>
+
 
