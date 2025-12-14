@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bingo Generator</title>
+  <style>
+    :root {
+      --bg: #0f1220;
+      --panel: #181c33;
+      --card: #1f2450;
+      --accent: #6c7cff;
+      --accent-2: #8be9fd;
+      --text: #e6e9ff;
+      --muted: #9aa1ff;
+      --crossed: #2a2f6a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(circle at top, #1b1f46, var(--bg));
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, #1b2050, var(--panel));
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 1.2rem;
+      color: var(--accent-2);
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      background: #0e1030;
+      border: 1px solid #2a2f6a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .row input[type="checkbox"] {
+      accent-color: var(--accent);
+      transform: scale(1.2);
+    }
+
+    button {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), #9b7bff);
+      border: none;
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 1rem;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      box-shadow: 0 8px 20px rgba(108,124,255,0.35);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 28px rgba(108,124,255,0.45);
+    }
+
+    .board-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .board {
+    background: linear-gradient(180deg, #262c6d, var(--card));
+    border-radius: 24px;
+    padding: 28px 28px 32px;
+    width: 100%;
+    max-width: 720px; /* bigger than setup */
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+    animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .board-title {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 16px;
+      color: var(--accent-2);
+      text-shadow: 0 0 12px rgba(139,233,253,0.35);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .cell {
+        background: #10144a;
+        border: 1px solid #343a80;
+        border-radius: 14px;
+        padding: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        cursor: pointer;
+        position: relative;
+
+        height: 120px;
+        aspect-ratio: 1 / 1;
+
+        font-size: clamp(0.75rem, 1.1vw, 1.15rem);
+        line-height: 1.15;
+        word-break: break-word;
+        overflow: hidden;
+
+        transition: background 0.2s ease,
+                    transform 0.15s ease,
+                    box-shadow 0.15s ease;
+    }
+
+    .cell:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+    }
+
+    .cell.crossed {
+      background: linear-gradient(135deg, #3a3f8f, #23276b);
+      color: #ffffff;
+      text-decoration: line-through;
+      box-shadow: inset 0 0 0 3px rgba(255,255,255,0.15), 0 0 18px rgba(139,233,253,0.35);
+      animation: stamp 0.35s cubic-bezier(.2,1.4,.4,1);
+    }
+
+    .cell.crossed::before {
+      content: "";
+      position: absolute;
+      inset: -6px;
+      border-radius: 18px;
+      animation: ripple 1s ease-out;
+    }
+
+    .cell.crossed::after {
+      content: "✕";
+      position: absolute;
+      font-size: 3rem;
+      opacity: 0.35;
+    }
+
+    .cell.free {
+      background: linear-gradient(135deg, #2ecc71, #27ae60);
+      color: #032e12;
+      font-weight: bold;
+      cursor: default;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+    }
+    .bingo-line {
+        background: linear-gradient(135deg, #ffeb3b 60%, #ffe082 100%) !important;
+        color: #222 !important;
+        text-shadow: 0 0 8px #fffde4;
+        font-weight: bold;
+        animation: bingoFlash 0.7s;
+    }
+    @keyframes bingoFlash {
+        0% { box-shadow: 0 0 0 0 #ffe082; }
+        50% { box-shadow: 0 0 24px 8px #ffe082; }
+        100% { box-shadow: 0 0 0 0 #ffe082; }
+    }
+    .bingo-animate {
+      animation: bingoTitlePop 1.2s cubic-bezier(.2,1.5,.5,1);
+      color: #ffe082 !important;
+      text-shadow: 0 0 24px #ffe082, 0 0 8px #fffde4;
+    }
+    .bingo-combo {
+      animation: bingoComboPop 1.6s cubic-bezier(.2,1.5,.5,1);
+      color: #ff4081 !important;
+      text-shadow: 0 0 32px #ff4081, 0 0 16px #fffde4, 0 0 8px #ffe082;
+      letter-spacing: 2px;
+    }
+    @keyframes bingoTitlePop {
+      0% { transform: scale(1); }
+      20% { transform: scale(1.18) rotate(-2deg); }
+      40% { transform: scale(1.12) rotate(2deg); }
+      60% { transform: scale(1.2) rotate(-1deg); }
+      80% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    @keyframes bingoComboPop {
+      0% { transform: scale(1) rotate(0deg); }
+      10% { transform: scale(1.25) rotate(-6deg); }
+      20% { transform: scale(1.18) rotate(6deg); }
+      30% { transform: scale(1.3) rotate(-8deg); }
+      40% { transform: scale(1.22) rotate(8deg); }
+      60% { transform: scale(1.4) rotate(0deg); }
+      80% { transform: scale(1.1); }
+      100% { transform: scale(1) rotate(0deg); }
+    }
+    .grid { aspect-ratio: 1/1; }
+    .cell { aspect-ratio: 1/1; height: 120px; min-width: 0; font-size: clamp(0.7rem, 2vw, 1.1rem); word-break: break-word; }
+    @media (max-width: 600px) {
+      .cell { height: 60px; font-size: clamp(0.6rem, 3vw, 0.9rem); }
+    }
+
+    @keyframes boardShake {
+        0%   { transform: translate(0, 0) rotate(0deg); }
+        15%  { transform: translate(-6px, 2px) rotate(-1deg); }
+        30%  { transform: translate(6px, -2px) rotate(1deg); }
+        45%  { transform: translate(-4px, 2px) rotate(-0.5deg); }
+        60%  { transform: translate(4px, -2px) rotate(0.5deg); }
+        75%  { transform: translate(-2px, 1px); }
+        100% { transform: translate(0, 0); }
+    }
+
+    @keyframes ripple {
+      from { opacity: 0.8; transform: scale(0.6); }
+      to   { opacity: 0; transform: scale(1.4); }
+    }
+
+    @keyframes stamp {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.25) rotate(-3deg); }
+      70%  { transform: scale(0.95); }
+      100% { transform: scale(1); }
+    }
+
+    .board.shake {
+        animation: boardShake 0.45s ease;
+    }
+
+    .cell.bingo-line {
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%,100% { box-shadow: 0 30px 60px rgba(0,0,0,.4); }
+      50% { box-shadow: 0 40px 70px rgba(108,124,255,.35); }
+    }
+
+    .cell.almost {
+      animation: almostPulse 1.4s ease-in-out infinite;
+      box-shadow: 0 0 22px rgba(255, 235, 130, 0.55);
+    }
+
+    @keyframes almostPulse {
+      0%, 100% {
+        box-shadow: 0 0 0 rgba(255, 235, 130, 0);
+      }
+      50% {
+        box-shadow: 0 0 22px rgba(255, 235, 130, 0.75);
+      }
+    }
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h2>Setup</h2>
+
+      <label for="titleInput">Bingo Title</label>
+      <input id="titleInput" type="text" placeholder="My Awesome Bingo" />
+
+      <label for="itemsInput">Bingo Entries (one per line) <span id="itemsCount" style="color:var(--muted);font-weight:normal;font-size:0.95em;"></span></label>
+      <textarea id="itemsInput" placeholder="Thing #1\nThing #2\nThing #3"></textarea>
+
+      <div class="row">
+        <input id="freeToggle" type="checkbox" checked />
+        <label for="freeToggle">Enable free space (center)</label>
+      </div>
+
+      <input type="text" id="freeTextInput" placeholder="Custom free space text" style="width:100%; margin-bottom:12px;" />
+
+      <button id="generateBtn">Generate / Re-generate</button>
+      <button id="exportBtn" style="margin-top:10px;">Export Current Board
+      </button>
+      <button id="exportSettingsBtn" style="margin-top:10px;">Export Current Settings</button>
+    </div>
+
+    <div class="board-container">
+      <div class="board" id="board">
+        <div class="board-title" id="boardTitle">BINGO</div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const titleInput = document.getElementById('titleInput');
+    const itemsInput = document.getElementById('itemsInput');
+    const freeToggle = document.getElementById('freeToggle');
+    const generateBtn = document.getElementById('generateBtn');
+    const grid = document.getElementById('grid');
+    const boardTitle = document.getElementById('boardTitle');
+    const exportBtn = document.getElementById('exportBtn');
+    const freeTextInput = document.getElementById('freeTextInput');
+
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+
+    function getBingoParams(order) {
+      const title = titleInput.value.trim() || 'BINGO';
+      let items = itemsInput.value
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v.length > 0);
+      const useFree = freeToggle.checked;
+      const totalCells = useFree ? 24 : 25;
+      items = items.slice(0, totalCells);
+      const params = new URLSearchParams();
+      params.set('title', title);
+      params.set('free', useFree ? '1' : '0');
+      params.set('items', items.join('|'));
+      if (order)
+        params.set('order', order.join(','));
+      return params;
+    }
+
+    // Track which lines have already been bingo'd for combo animation
+    let prevBingoLines = new Set();
+    let lastOrder = null;
+    let lastCellData = null;
+    let lastFreeText = '';
+
+    function generateBoard(fromParams = false, importedOrder = null, importedCells = null, importedFree = null) {
+      updateItemsCount();
+      const title = titleInput.value.trim() || 'BINGO';
+      boardTitle.textContent = title;
+      document.title = title + ' – Bingo';
+
+      let items = itemsInput.value
+        .split('\n')
+        .map(v => {
+          v = v.trim();
+          // Remove trailing delimiter if present
+          if (v.length > 0 && [',', ';', '|', '/'].includes(v[v.length - 1])) {
+            v = v.slice(0, -1).trim();
+          }
+          return v;
+        })
+        .filter(v => v.length > 0);
+
+      // Force free space ON and disable toggle if not enough entries
+      if (items.length < 25) {
+        freeToggle.checked = true;
+        freeToggle.disabled = true;
+        try {
+          updateFreeTextInputVisibility();
+        } catch (e) {
+          shuffle(items);
+        }
+      } else {
+        freeToggle.disabled = false;
+      }
+
+      const useFree = freeToggle.checked;
+      const totalCells = useFree ? 24 : 25;
+      let orderArr;
+      let cellData;
+      let freeText = freeTextInput.value.trim();
+      if (fromParams && importedCells && importedCells.length === 25) {
+        // Use imported cell data
+        cellData = importedCells.slice();
+        orderArr = importedOrder || Array.from({length: items.length}, (_, i) => i);
+        freeText = importedFree || '';
+      } else if (fromParams && importedCells && importedCells.length < 25) {
+        // If importedCells is less than 25, pad with empty strings to avoid crash
+        cellData = importedCells.slice();
+        while (cellData.length < 25) cellData.push('');
+        orderArr = importedOrder || Array.from({length: items.length}, (_, i) => i);
+        freeText = importedFree || '';
+      } else {
+        // Shuffle and save order
+        orderArr = Array.from({length: items.length}, (_, i) => i);
+        if (!fromParams) shuffle(orderArr);
+        cellData = [];
+        let itemIdx = 0;
+        for (let i = 0; i < 25; i++) {
+          if (useFree && i === 12) {
+            // Free space logic
+            cellData.push(freeText || 'FREE');
+          } else {
+            // Fill with next unused item, skip free cell
+            if (useFree && itemIdx === 12) itemIdx++;
+            let idx = orderArr[itemIdx];
+            cellData.push(items[idx] || '');
+            itemIdx++;
+          }
+        }
+      }
+      lastOrder = orderArr;
+      lastCellData = cellData;
+      lastFreeText = freeText;
+
+      grid.innerHTML = '';
+      const cells = [];
+
+      function checkBingo() {
+        // 5x5 grid, check rows, columns, diagonals
+        const crossed = cells.map(cell => cell.classList.contains('crossed'));
+        const lines = [];
+        // Rows
+        for (let r = 0; r < 5; r++) lines.push([0,1,2,3,4].map(c => r*5+c));
+        // Columns
+        for (let c = 0; c < 5; c++) lines.push([0,1,2,3,4].map(r => r*5+c));
+        // Diagonals
+        lines.push([0,6,12,18,24]);
+        lines.push([4,8,12,16,20]);
+        
+        // Clear all bingo-line classes first
+        cells.forEach(cell => cell.classList.remove('bingo-line'));
+        cells.forEach(c => c.classList.remove('bingo-line', 'almost'));
+
+        let bingoCount = 0;
+
+        lines.forEach(line => {
+          const crossedCount = line.filter(i => crossed[i]).length;
+
+          // Full bingo
+          if (crossedCount === 5) {
+            bingoCount++;
+            line.forEach(i => cells[i].classList.add('bingo-line'));
+          }
+
+          // Almost bingo
+          else if (crossedCount === 4) {
+            line.forEach(i => {
+              if (!crossed[i]) cells[i].classList.add('almost');
+            });
+          }
+        });
+
+        let newBingoLines = new Set();
+        lines.forEach((line, idx) => {
+          if (line.every(idx => crossed[idx])) {
+            line.forEach(idx => cells[idx].classList.add('bingo-line'));
+            bingoCount++;
+            newBingoLines.add(idx);
+          }
+        });
+
+        prevBingoLines = newBingoLines;
+        if (bingoCount > 0) {
+          // Play happy animation, crazier for more lines
+          boardTitle.classList.remove('bingo-animate', 'bingo-combo');
+          void boardTitle.offsetWidth;
+          if (bingoCount === 1) {
+            boardTitle.classList.add('bingo-animate');
+            setTimeout(() => boardTitle.classList.remove('bingo-animate'), 1200);
+          } else {
+            boardTitle.classList.add('bingo-combo');
+            setTimeout(() => boardTitle.classList.remove('bingo-combo'), 1600);
+          }
+          launchConfetti(bingoCount);
+        }
+      }
+
+      for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.textContent = cellData[i] || '';
+        cells.push(cell);
+        if (useFree && i === 12 && (freeText || cellData[i] === 'FREE')) {
+          cell.classList.add('free');
+        }
+        cell.addEventListener('click', () => {
+          cell.classList.toggle('crossed');
+          checkBingo();
+        });
+        grid.appendChild(cell);
+      }
+    }
+    // Add bingo-line and bingo-animate styles
+
+    generateBtn.addEventListener('click', () => {
+        const board = document.getElementById('board');
+        board.classList.remove('shake');
+        void board.offsetWidth; // force reflow
+        board.classList.add('shake');
+
+        generateBoard(false);
+    });
+
+    const itemsCount = document.getElementById('itemsCount');
+    function updateItemsCount() {
+      const count = itemsInput.value
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v.length > 0).length;
+      itemsCount.textContent = `(${count} option${count === 1 ? '' : 's'})`;
+    }
+    itemsInput.addEventListener('input', updateItemsCount);
+    
+
+    // Unified loader: only set demo content if not loading from params
+    let loadedFromParams = false;
+    function tryLoadFromParams() {
+      const params = new URLSearchParams(window.location.search);
+      if (!params.has('items')) return false;
+      const title = params.get('title') || 'BINGO';
+      const useFree = params.get('free') === '1';
+      const items = params.get('items').split('|');
+      let order = null;
+      if (params.has('order')) order = params.get('order').split(',').map(Number);
+      let cells = null;
+      if (params.has('cells')) cells = params.get('cells').split('|').map(decodeURIComponent);
+      let freetext = params.get('freetext') || '';
+      titleInput.value = title;
+      freeToggle.checked = useFree;
+      itemsInput.value = items.join('\n');
+      freeTextInput.value = freetext;
+      generateBoard(true, order, cells, freetext);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      return true;
+    }
+
+    loadedFromParams = tryLoadFromParams();
+
+
+    exportBtn.addEventListener('click', () => {
+      // Export the actual cell data and free text, not just the input list (fixed board)
+      const params = new URLSearchParams();
+      params.set('title', titleInput.value.trim() || 'BINGO');
+      params.set('free', freeToggle.checked ? '1' : '0');
+      params.set('items', itemsInput.value
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v.length > 0)
+        .join('|'));
+      params.set('cells', lastCellData ? lastCellData.map(x => encodeURIComponent(x)).join('|') : '');
+      params.set('order', lastOrder ? lastOrder.join(',') : '');
+      params.set('freetext', lastFreeText || '');
+      const url = window.location.origin + window.location.pathname + '?' + params.toString();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          exportBtn.textContent = 'Copied!';
+          setTimeout(() => { exportBtn.textContent = 'Export Shareable URL'; }, 1200);
+        }, () => {
+          window.prompt('Copy this URL:', url);
+        });
+      } else {
+        window.prompt('Copy this URL:', url);
+      }
+    });
+
+    // Export settings only (for same setup, not same board)
+    const exportSettingsBtn = document.getElementById('exportSettingsBtn');
+    exportSettingsBtn.addEventListener('click', () => {
+      const params = new URLSearchParams();
+      params.set('title', titleInput.value.trim() || 'BINGO');
+      params.set('free', freeToggle.checked ? '1' : '0');
+      params.set('items', itemsInput.value
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v.length > 0)
+        .join('|'));
+      params.set('freetext', freeTextInput.value.trim() || '');
+      // Do NOT include 'cells' or 'order' (so board is randomized)
+      const url = window.location.origin + window.location.pathname + '?' + params.toString();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+          exportSettingsBtn.textContent = 'Copied!';
+          setTimeout(() => { exportSettingsBtn.textContent = 'Export Settings URL'; }, 1200);
+        }, () => {
+          window.prompt('Copy this URL:', url);
+        });
+      } else {
+        window.prompt('Copy this URL:', url);
+      }
+    });
+
+    if (!loadedFromParams) {
+      // Initial demo content
+      itemsInput.value = [
+        'Free parking space',
+        'Unexpected bug',
+        'Someone says “it works on my machine”',
+        'Late meeting start',
+        'Coffee refill',
+        'Random reboot',
+        'Docs are outdated',
+        'Hotfix on Friday',
+        'Forgotten password',
+        'DNS issue',
+        'Cache problem',
+        'Blame the network',
+        'Blame the user',
+        'Works after restart',
+        'Missing semicolon',
+        'Merge conflict',
+        'Commented-out code',
+        'TODO left forever',
+        'Test passes locally',
+        'Build fails in CI',
+        'One more quick change',
+        'Scope creep',
+        'Last-minute request',
+        'Version mismatch',
+        'Deprecated API'
+      ].join('\n');
+      generateBoard();
+    }
+
+    // Confetti effect
+    function launchConfetti(combo) {
+      // Remove any existing confetti
+      const old = document.getElementById('bingo-confetti');
+      if (old) old.remove();
+      const canvas = document.createElement('canvas');
+      canvas.id = 'bingo-confetti';
+      canvas.style.position = 'fixed';
+      canvas.style.left = 0;
+      canvas.style.top = 0;
+      canvas.style.width = '100vw';
+      canvas.style.height = '100vh';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = 9999;
+      document.body.appendChild(canvas);
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const ctx = canvas.getContext('2d');
+      const colors = ['#ffe082','#ff4081','#8be9fd','#6c7cff','#2ecc71','#fff'];
+      const pieces = 60 + 30 * (combo-1);
+      const confetti = [];
+      // Add fireworks bursts
+      const bursts = Math.max(2, Math.min(5, combo + 1));
+      for (let b = 0; b < bursts; b++) {
+        const burstX = Math.random() * canvas.width * 0.7 + canvas.width * 0.15;
+        const burstY = Math.random() * canvas.height * 0.3 + canvas.height * 0.1;
+        const burstPieces = Math.floor(pieces / bursts);
+        for (let i = 0; i < burstPieces; i++) {
+          const angle = (2 * Math.PI * i) / burstPieces + Math.random() * 0.2;
+          const speed = 4 + Math.random() * 3;
+          confetti.push({
+            x: burstX,
+            y: burstY,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            r: 6 + Math.random() * 8,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            tilt: Math.random() * Math.PI * 2,
+            tiltVel: (Math.random() - 0.5) * 0.2, // angular velocity
+            rot: Math.random() * Math.PI * 2,
+            rotVel: (Math.random() - 0.5) * 0.2, // rotation velocity
+            gravity: 0.12 + Math.random() * 0.08,
+            alpha: 0.8 + Math.random() * 0.2
+          });
+        }
+      }
+      // Add some falling confetti for variety
+      for (let i = 0; i < pieces / 2; i++) {
+        confetti.push({
+          x: Math.random() * canvas.width,
+          y: -20 - Math.random() * 40,
+          vx: Math.random() * 2 - 1,
+          vy: 2 + Math.random() * 2,
+          r: 6 + Math.random() * 8,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * Math.PI * 2,
+          tiltVel: (Math.random() - 0.5) * 0.2,
+          rot: Math.random() * Math.PI * 2,
+          rotVel: (Math.random() - 0.5) * 0.2,
+          gravity: 0.13 + Math.random() * 0.07,
+          alpha: 0.8 + Math.random() * 0.2
+        });
+      }
+      let frame = 0;
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        confetti.forEach(c => {
+          ctx.save();
+          ctx.globalAlpha = c.alpha;
+          ctx.translate(c.x, c.y);
+          ctx.rotate(c.rot);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, c.r, c.r * 0.6, c.tilt, 0, 2 * Math.PI);
+          ctx.fillStyle = c.color;
+          ctx.fill();
+          ctx.restore();
+        });
+        ctx.globalAlpha = 1;
+      }
+      function update() {
+        confetti.forEach(c => {
+          c.x += c.vx;
+          c.y += c.vy;
+          c.vy += c.gravity;
+          c.tilt += c.tiltVel;
+          c.rot += c.rotVel;
+          // Fade out if off screen
+          if (c.y > canvas.height + 40) c.alpha -= 0.02;
+        });
+        frame++;
+      }
+      let ticks = 0;
+      function loop() {
+        draw();
+        update();
+        ticks++;
+        if (ticks < 700 + combo * 20 && confetti.some(c => c.alpha > 0))
+          requestAnimationFrame(loop);
+        else
+          canvas.remove();
+      }
+      loop();
+    }
+
+    // Add sliding animation for freeTextInput
+    const freeTextInputEl = document.getElementById('freeTextInput');
+    freeTextInputEl.style.transition = 'max-height 0.4s cubic-bezier(.4,1.5,.5,1), opacity 0.3s';
+    freeTextInputEl.style.overflow = 'hidden';
+    freeTextInputEl.style.maxHeight = freeToggle.checked ? '60px' : '0';
+    freeTextInputEl.style.opacity = freeToggle.checked ? '1' : '0';
+
+    function updateFreeTextInputVisibility() {
+      if (freeToggle.checked) {
+        freeTextInputEl.style.maxHeight = '60px';
+        freeTextInputEl.style.opacity = '1';
+      } else {
+        freeTextInputEl.style.maxHeight = '0';
+        freeTextInputEl.style.opacity = '0';
+      }
+    }
+
+    freeToggle.addEventListener('change', () => {
+      // Only allow user to change if not disabled
+      if (!freeToggle.disabled) {
+        updateFreeTextInputVisibility();
+      } else {
+        // Revert any user attempt to change when disabled
+        freeToggle.checked = true;
+      }
+    });
+
+    freeTextInputEl.addEventListener('blur', () => {
+        if (freeToggle.checked && freeTextInputEl.value.trim() === '') {
+            freeTextInputEl.value = 'FREE';
+            updateCenterFreeCell('FREE');
+        }
+        });
+
+        freeTextInputEl.addEventListener('input', () => {
+        if (!freeToggle.checked) return;
+        const val = freeTextInputEl.value.trim();
+        updateCenterFreeCell(val || 'FREE');
+        });
+
+        function updateCenterFreeCell(text) {
+        const gridCells = document.querySelectorAll('.grid .cell');
+        if (gridCells.length === 25) {
+            gridCells[12].textContent = text;
+            gridCells[12].classList.add('free');
+        }
+    }
+
+    // Update only the title instantly
+    const boardTitleEl = document.getElementById('boardTitle');
+    titleInput.addEventListener('input', () => {
+      boardTitleEl.textContent = titleInput.value.trim() || 'BINGO';
+      document.title = (titleInput.value.trim() || 'BINGO') + ' – Bingo';
+    });
+  </script>
+</body>
+</html>
