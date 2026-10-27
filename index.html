@@ -84,6 +84,14 @@
       margin-bottom: 12px;
     }
 
+    #randomFreeToggleRow {
+      max-height: 40px;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(.4,1.5,.5,1),
+                  opacity 0.3s,
+                  margin-bottom 0.4s;
+    }
+
     .item-warning {
       margin: -4px 0 12px;
       color: #ffe082;
@@ -951,6 +959,9 @@
       randomFreeToggleRow.title = freeToggle.checked
         ? ''
         : 'Enable free space to choose a random location.';
+      randomFreeToggleRow.style.maxHeight = freeToggle.checked ? '40px' : '0';
+      randomFreeToggleRow.style.opacity = freeToggle.checked ? '1' : '0';
+      randomFreeToggleRow.style.marginBottom = freeToggle.checked ? '12px' : '0';
     }
 
     freeToggle.addEventListener('change', () => {
