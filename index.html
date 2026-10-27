@@ -81,6 +81,12 @@
       margin-bottom: 12px;
     }
 
+    .item-warning {
+      margin: -4px 0 12px;
+      color: #ffe082;
+      font-size: 0.85rem;
+    }
+
     .row input[type="checkbox"] {
       accent-color: var(--accent);
       transform: scale(1.2);
@@ -322,8 +328,9 @@
 
       <label for="itemsInput">Bingo Entries (one per line) <span id="itemsCount" style="color:var(--muted);font-weight:normal;font-size:0.95em;"></span></label>
       <textarea id="itemsInput" placeholder="Thing #1\nThing #2\nThing #3"></textarea>
+      <div id="itemWarning" class="item-warning" role="status" aria-live="polite" hidden></div>
 
-      <div class="row">
+      <div class="row" id="freeToggleRow">
         <input id="freeToggle" type="checkbox" checked />
         <label for="freeToggle">Enable free space (center)</label>
       </div>
@@ -353,6 +360,21 @@
     const boardTitle = document.getElementById('boardTitle');
     const exportBtn = document.getElementById('exportBtn');
     const freeTextInput = document.getElementById('freeTextInput');
+    const itemWarning = document.getElementById('itemWarning');
+    const freeToggleRow = document.getElementById('freeToggleRow');
+
+    function getBingoItems() {
+      return itemsInput.value
+        .split('\n')
+        .map(v => {
+          v = v.trim();
+          if (v.length > 0 && [',', ';', '|', '/'].includes(v[v.length - 1])) {
+            v = v.slice(0, -1).trim();
+          }
+          return v;
+        })
+        .filter(v => v.length > 0);
+    }
 
     function shuffle(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -392,33 +414,23 @@
       boardTitle.textContent = title;
       document.title = title + ' – Bingo';
 
-      let items = itemsInput.value
-        .split('\n')
-        .map(v => {
-          v = v.trim();
-          // Remove trailing delimiter if present
-          if (v.length > 0 && [',', ';', '|', '/'].includes(v[v.length - 1])) {
-            v = v.slice(0, -1).trim();
-          }
-          return v;
-        })
-        .filter(v => v.length > 0);
+      let items = getBingoItems();
 
       // Force free space ON and disable toggle if not enough entries
       if (items.length < 25) {
         freeToggle.checked = true;
         freeToggle.disabled = true;
-        try {
-          updateFreeTextInputVisibility();
-        } catch (e) {
-          shuffle(items);
-        }
+        freeToggleRow.title = 'Free space is locked because the board needs 25 entries when free space is disabled.';
+        updateFreeTextInputVisibility();
       } else {
         freeToggle.disabled = false;
+        freeToggleRow.removeAttribute('title');
       }
 
       const useFree = freeToggle.checked;
       const totalCells = useFree ? 24 : 25;
+      items = items.slice(0, totalCells);
+      updateItemsCount();
       let orderArr;
       let cellData;
       let freeText = freeTextInput.value.trim();
@@ -444,8 +456,7 @@
             // Free space logic
             cellData.push(freeText || 'FREE');
           } else {
-            // Fill with next unused item, skip free cell
-            if (useFree && itemIdx === 12) itemIdx++;
+            // Fill each non-free cell with the next item.
             let idx = orderArr[itemIdx];
             cellData.push(items[idx] || '');
             itemIdx++;
@@ -547,11 +558,14 @@
 
     const itemsCount = document.getElementById('itemsCount');
     function updateItemsCount() {
-      const count = itemsInput.value
-        .split('\n')
-        .map(v => v.trim())
-        .filter(v => v.length > 0).length;
+      const count = getBingoItems().length;
       itemsCount.textContent = `(${count} option${count === 1 ? '' : 's'})`;
+      const requiredCount = count < 25 || freeToggle.checked ? 24 : 25;
+      const missing = Math.max(0, requiredCount - count);
+      itemWarning.textContent = missing
+        ? `Add ${missing} more non-blank item${missing === 1 ? '' : 's'} to fill the board.`
+        : '';
+      itemWarning.hidden = missing === 0;
     }
     itemsInput.addEventListener('input', updateItemsCount);
     
@@ -774,16 +788,16 @@
     const freeTextInputEl = document.getElementById('freeTextInput');
     freeTextInputEl.style.transition = 'max-height 0.4s cubic-bezier(.4,1.5,.5,1), opacity 0.3s';
     freeTextInputEl.style.overflow = 'hidden';
-    freeTextInputEl.style.maxHeight = freeToggle.checked ? '60px' : '0';
-    freeTextInputEl.style.opacity = freeToggle.checked ? '1' : '0';
+    freeTextInput.style.maxHeight = freeToggle.checked ? '60px' : '0';
+    freeTextInput.style.opacity = freeToggle.checked ? '1' : '0';
 
     function updateFreeTextInputVisibility() {
       if (freeToggle.checked) {
-        freeTextInputEl.style.maxHeight = '60px';
-        freeTextInputEl.style.opacity = '1';
+        freeTextInput.style.maxHeight = '60px';
+        freeTextInput.style.opacity = '1';
       } else {
-        freeTextInputEl.style.maxHeight = '0';
-        freeTextInputEl.style.opacity = '0';
+        freeTextInput.style.maxHeight = '0';
+        freeTextInput.style.opacity = '0';
       }
     }
 
@@ -791,6 +805,7 @@
       // Only allow user to change if not disabled
       if (!freeToggle.disabled) {
         updateFreeTextInputVisibility();
+        updateItemsCount();
       } else {
         // Revert any user attempt to change when disabled
         freeToggle.checked = true;
@@ -827,5 +842,3 @@
   </script>
 </body>
 </html>
-
-
