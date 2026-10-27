@@ -415,7 +415,12 @@
 
       <div class="row" id="freeToggleRow">
         <input id="freeToggle" type="checkbox" checked />
-        <label for="freeToggle">Enable free space (center)</label>
+        <label for="freeToggle">Enable free space</label>
+      </div>
+
+      <div class="row" id="randomFreeToggleRow">
+        <input id="randomFreeToggle" type="checkbox" />
+        <label for="randomFreeToggle">Random free space location</label>
       </div>
 
       <input type="text" id="freeTextInput" placeholder="Custom free space text" style="width:100%; margin-bottom:12px;" />
@@ -445,6 +450,8 @@
     const freeTextInput = document.getElementById('freeTextInput');
     const itemWarning = document.getElementById('itemWarning');
     const freeToggleRow = document.getElementById('freeToggleRow');
+    const randomFreeToggle = document.getElementById('randomFreeToggle');
+    const randomFreeToggleRow = document.getElementById('randomFreeToggleRow');
 
     function getBingoItems() {
       return itemsInput.value
@@ -490,8 +497,9 @@
     let lastOrder = null;
     let lastCellData = null;
     let lastFreeText = '';
+    let lastFreeIndex = 12;
 
-    function generateBoard(fromParams = false, importedOrder = null, importedCells = null, importedFree = null) {
+    function generateBoard(fromParams = false, importedOrder = null, importedCells = null, importedFree = null, importedFreeIndex = null) {
       updateItemsCount();
       const title = titleInput.value.trim() || 'BINGO';
       boardTitle.textContent = title;
@@ -510,10 +518,16 @@
         freeToggleRow.removeAttribute('title');
       }
 
+      updateRandomFreeToggleAvailability();
       const useFree = freeToggle.checked;
       const totalCells = useFree ? 24 : 25;
       items = items.slice(0, totalCells);
       updateItemsCount();
+      const freeIndex = useFree
+        ? (Number.isInteger(importedFreeIndex) && importedFreeIndex >= 0 && importedFreeIndex < 25
+          ? importedFreeIndex
+          : randomFreeToggle.checked ? Math.floor(Math.random() * 25) : 12)
+        : -1;
       let orderArr;
       let cellData;
       let freeText = freeTextInput.value.trim();
@@ -535,7 +549,7 @@
         cellData = [];
         let itemIdx = 0;
         for (let i = 0; i < 25; i++) {
-          if (useFree && i === 12) {
+          if (useFree && i === freeIndex) {
             // Free space logic
             cellData.push(freeText || 'FREE');
           } else {
@@ -549,6 +563,7 @@
       lastOrder = orderArr;
       lastCellData = cellData;
       lastFreeText = freeText;
+      lastFreeIndex = freeIndex;
       prevBingoLines = new Set();
 
       grid.innerHTML = '';
@@ -618,7 +633,7 @@
         cell.className = 'cell';
         cell.textContent = cellData[i] || '';
         cells.push(cell);
-        if (useFree && i === 12 && (freeText || cellData[i] === 'FREE')) {
+        if (useFree && i === freeIndex && (freeText || cellData[i] === 'FREE')) {
           cell.classList.add('free');
         }
         cell.addEventListener('click', () => {
@@ -661,16 +676,19 @@
       const title = params.get('title') || 'BINGO';
       const useFree = params.get('free') === '1';
       const items = params.get('items').split('|');
+      const randomFree = params.get('randomFree') === '1';
       let order = null;
       if (params.has('order')) order = params.get('order').split(',').map(Number);
       let cells = null;
       if (params.has('cells')) cells = params.get('cells').split('|').map(decodeURIComponent);
       let freetext = params.get('freetext') || '';
+      const freeIndex = params.has('freeIndex') ? Number(params.get('freeIndex')) : null;
       titleInput.value = title;
       freeToggle.checked = useFree;
+      randomFreeToggle.checked = randomFree;
       itemsInput.value = items.join('\n');
       freeTextInput.value = freetext;
-      generateBoard(true, order, cells, freetext);
+      generateBoard(true, order, cells, freetext, freeIndex);
       window.history.replaceState({}, document.title, window.location.pathname);
       
       return true;
@@ -684,6 +702,7 @@
       const params = new URLSearchParams();
       params.set('title', titleInput.value.trim() || 'BINGO');
       params.set('free', freeToggle.checked ? '1' : '0');
+      params.set('randomFree', randomFreeToggle.checked ? '1' : '0');
       params.set('items', itemsInput.value
         .split('\n')
         .map(v => v.trim())
@@ -692,6 +711,7 @@
       params.set('cells', lastCellData ? lastCellData.map(x => encodeURIComponent(x)).join('|') : '');
       params.set('order', lastOrder ? lastOrder.join(',') : '');
       params.set('freetext', lastFreeText || '');
+      if (freeToggle.checked) params.set('freeIndex', String(lastFreeIndex));
       const url = window.location.origin + window.location.pathname + '?' + params.toString();
       if (navigator.clipboard) {
         navigator.clipboard.writeText(url).then(() => {
@@ -711,6 +731,7 @@
       const params = new URLSearchParams();
       params.set('title', titleInput.value.trim() || 'BINGO');
       params.set('free', freeToggle.checked ? '1' : '0');
+      params.set('randomFree', randomFreeToggle.checked ? '1' : '0');
       params.set('items', itemsInput.value
         .split('\n')
         .map(v => v.trim())
@@ -786,7 +807,7 @@
       }
 
       const colors = ['#ffe082', '#ff6b9a', '#8be9fd', '#9b8cff', '#65e6a5', '#fff4cf'];
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       const resizeCanvas = () => {
         canvas.width = Math.round(window.innerWidth * dpr);
         canvas.height = Math.round(window.innerHeight * dpr);
@@ -842,10 +863,15 @@
       function drawParticle(particle) {
         const fade = Math.min(1, (particle.life - particle.age) / 0.45);
         const flutter = Math.sin(particle.flutter) * 0.4;
-        ctx.save();
+        const rotation = particle.rotation + flutter;
+        const cos = particle.shape === 'circle' ? 1 : Math.cos(rotation);
+        const sin = particle.shape === 'circle' ? 0 : Math.sin(rotation);
+        ctx.setTransform(
+          dpr * cos, dpr * sin,
+          -dpr * sin, dpr * cos,
+          dpr * particle.x, dpr * particle.y
+        );
         ctx.globalAlpha = Math.max(0, fade) * 0.92;
-        ctx.translate(particle.x, particle.y);
-        ctx.rotate(particle.rotation + flutter);
         ctx.fillStyle = particle.color;
         if (particle.shape === 'circle') {
           ctx.beginPath();
@@ -855,7 +881,6 @@
           const width = particle.size * (0.62 + Math.abs(flutter) * 0.55);
           ctx.fillRect(-width / 2, -particle.size * 0.7, width, particle.size * 1.4);
         }
-        ctx.restore();
       }
 
       function animate(now) {
@@ -865,6 +890,8 @@
         const delta = Math.min((now - previousTime) / 1000, 0.032);
         previousTime = now;
         const elapsed = (now - startTime) / 1000;
+        ctx.globalAlpha = 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
         bursts.forEach(burst => {
@@ -919,10 +946,18 @@
       }
     }
 
+    function updateRandomFreeToggleAvailability() {
+      randomFreeToggle.disabled = !freeToggle.checked;
+      randomFreeToggleRow.title = freeToggle.checked
+        ? ''
+        : 'Enable free space to choose a random location.';
+    }
+
     freeToggle.addEventListener('change', () => {
       // Only allow user to change if not disabled
       if (!freeToggle.disabled) {
         updateFreeTextInputVisibility();
+        updateRandomFreeToggleAvailability();
         updateItemsCount();
       } else {
         // Revert any user attempt to change when disabled
@@ -946,8 +981,11 @@
         function updateCenterFreeCell(text) {
         const gridCells = document.querySelectorAll('.grid .cell');
         if (gridCells.length === 25) {
-            gridCells[12].textContent = text;
-            gridCells[12].classList.add('free');
+            const freeCell = gridCells[lastFreeIndex];
+            if (freeCell && freeToggle.checked) {
+              freeCell.textContent = text;
+              freeCell.classList.add('free');
+            }
         }
     }
 
